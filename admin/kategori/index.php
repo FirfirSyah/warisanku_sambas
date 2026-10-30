@@ -4,30 +4,36 @@ require_once __DIR__ . '/../../includes/admin-helpers.php';
 require_login();
 
 $editId = (int) ($_GET['edit'] ?? 0);
-$form   = ['name' => '', 'type' => 'budaya'];
+$form   = ['name' => '', 'type' => 'budaya', 'description' => ''];
+$jenisKategori = ['budaya' => 'Artikel budaya', 'wisata' => 'Destinasi wisata', 'galeri' => 'Foto galeri'];
 $errors = [];
 
 if ($editId > 0) {
-    $stmt = db()->prepare('SELECT id, name, type FROM categories WHERE id = :id');
+    $stmt = db()->prepare('SELECT id, name, type, description FROM categories WHERE id = :id');
     $stmt->execute([':id' => $editId]);
     $row = $stmt->fetch();
     if (!$row) {
         set_flash('error', 'Kategori tidak ditemukan.');
         redirect('admin/kategori/index.php');
     }
-    $form = $row;
+    $form = array_map(fn($v) => $v ?? '', $row);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
 
     $form['name'] = post_teks('name');
+    $form['description'] = post_teks('description');
     if ($editId === 0) {
-        $form['type'] = post_teks('type') === 'wisata' ? 'wisata' : 'budaya';
+        $jenis = post_teks('type');
+        $form['type'] = array_key_exists($jenis, $jenisKategori) ? $jenis : 'budaya';
     }
 
-    if (mb_strlen($form['name']) < 2 || mb_strlen($form['name']) > 80) {
-        $errors[] = 'Nama kategori harus 2 sampai 80 karakter.';
+    if (mb_strlen($form['name']) < 2 || mb_strlen($form['name']) > 100) {
+        $errors[] = 'Nama kategori harus 2 sampai 100 karakter.';
+    }
+    if (mb_strlen($form['description']) > 1000) {
+        $errors[] = 'Deskripsi maksimal 1000 karakter.';
     }
 
     if (!$errors) {
@@ -40,15 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
-        $slug = slug_unik('categories', $form['name'], $editId ?: null, $form['type']);
+        $slug = slug_unik('categories', $form['name'], $editId ?: null);
+        $deskripsi = $form['description'] !== '' ? $form['description'] : null;
         try {
             if ($editId > 0) {
-                db()->prepare('UPDATE categories SET name = :n, slug = :s WHERE id = :id')
-                    ->execute([':n' => $form['name'], ':s' => $slug, ':id' => $editId]);
+                db()->prepare('UPDATE categories SET name = :n, slug = :s, description = :d WHERE id = :id')
+                    ->execute([':n' => $form['name'], ':s' => $slug, ':d' => $deskripsi, ':id' => $editId]);
                 set_flash('success', 'Kategori diperbarui.');
             } else {
-                db()->prepare('INSERT INTO categories (name, slug, type) VALUES (:n, :s, :t)')
-                    ->execute([':n' => $form['name'], ':s' => $slug, ':t' => $form['type']]);
+                db()->prepare('INSERT INTO categories (name, slug, type, description) VALUES (:n, :s, :t, :d)')
+                    ->execute([':n' => $form['name'], ':s' => $slug, ':t' => $form['type'], ':d' => $deskripsi]);
                 set_flash('success', 'Kategori ditambahkan.');
             }
             redirect('admin/kategori/index.php');
@@ -62,7 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $daftar = db()->query(
     "SELECT c.id, c.name, c.type,
             (SELECT COUNT(*) FROM articles a WHERE a.category_id = c.id)
-          + (SELECT COUNT(*) FROM destinations d WHERE d.category_id = c.id) AS dipakai
+          + (SELECT COUNT(*) FROM destinations d WHERE d.category_id = c.id)
+          + (SELECT COUNT(*) FROM galleries g WHERE g.category_id = c.id) AS dipakai
        FROM categories c ORDER BY c.type, c.name"
 )->fetchAll();
 
@@ -79,15 +87,20 @@ require __DIR__ . '/../../includes/admin-header.php';
     <?= csrf_field() ?>
     <div class="adm-field">
       <label for="name" class="adm-label">Nama kategori</label>
-      <input id="name" name="name" required maxlength="80" value="<?= e($form['name']) ?>" class="adm-input">
+      <input id="name" name="name" required maxlength="100" value="<?= e($form['name']) ?>" class="adm-input">
     </div>
     <div class="adm-field">
       <label for="type" class="adm-label">Untuk</label>
       <select id="type" name="type" class="adm-select" <?= $editId > 0 ? 'disabled' : '' ?>>
-        <option value="budaya" <?= $form['type'] === 'budaya' ? 'selected' : '' ?>>Artikel budaya</option>
-        <option value="wisata" <?= $form['type'] === 'wisata' ? 'selected' : '' ?>>Destinasi wisata</option>
+        <?php foreach ($jenisKategori as $kunci => $label): ?>
+          <option value="<?= e($kunci) ?>" <?= $form['type'] === $kunci ? 'selected' : '' ?>><?= e($label) ?></option>
+        <?php endforeach; ?>
       </select>
       <?php if ($editId > 0): ?><p class="adm-hint">Jenis kategori tidak bisa diubah setelah dibuat.</p><?php endif; ?>
+    </div>
+    <div class="adm-field">
+      <label for="description" class="adm-label">Deskripsi (opsional)</label>
+      <textarea id="description" name="description" maxlength="1000" class="adm-textarea" style="min-height:4.5rem"><?= e($form['description']) ?></textarea>
     </div>
     <div class="adm-aksi">
       <button type="submit" class="adm-btn">Simpan</button>
@@ -102,7 +115,7 @@ require __DIR__ . '/../../includes/admin-header.php';
       <?php foreach ($daftar as $k): ?>
         <tr>
           <td><strong><?= e($k['name']) ?></strong></td>
-          <td><?= $k['type'] === 'budaya' ? 'Budaya' : 'Wisata' ?></td>
+          <td><?= e($jenisKategori[$k['type']] ?? $k['type']) ?></td>
           <td><?= (int) $k['dipakai'] ?></td>
           <td>
             <div class="adm-aksi">

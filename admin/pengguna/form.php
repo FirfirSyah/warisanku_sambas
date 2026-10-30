@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!preg_match('/^[A-Za-z0-9_]{4,30}$/', $data['username'])) {
         $errors[] = 'Username 4 sampai 30 karakter: huruf, angka, atau garis bawah.';
     }
-    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || mb_strlen($data['email']) > 150) {
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || mb_strlen($data['email']) > 120) {
         $errors[] = 'Format email tidak valid.';
     }
     if ($id === 0 || $password !== '') {
@@ -128,7 +128,7 @@ require __DIR__ . '/../../includes/admin-header.php';
   </div>
   <div class="adm-field">
     <label for="email" class="adm-label">Email</label>
-    <input id="email" name="email" type="email" required maxlength="150" value="<?= e($data['email']) ?>" class="adm-input">
+    <input id="email" name="email" type="email" required maxlength="120" value="<?= e($data['email']) ?>" class="adm-input">
   </div>
 
   <div class="adm-field">

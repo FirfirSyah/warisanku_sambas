@@ -1,86 +1,220 @@
--- Skema database WARISANKU SAMBAS
--- Cara pakai: impor file ini lewat phpMyAdmin (tab Import) atau
---   mysql -u root < database/schema.sql
+-- Skema database WARISANKU SAMBAS (sama dengan database di phpMyAdmin).
+-- Cara pakai: impor lewat phpMyAdmin (tab Import) atau  mysql -u root < database/schema.sql
 -- Setelah itu buka /admin/setup.php untuk membuat akun admin pertama.
+--
+-- File ini untuk database KOSONG. Kalau database sudah ada (mis. dari phpMyAdmin) dan hanya
+-- kategori awalnya yang belum terisi, cukup jalankan database/seed_kategori.sql.
 
-CREATE DATABASE IF NOT EXISTS warisanku_sambas
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS warisanku_sambas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE warisanku_sambas;
+SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE TABLE IF NOT EXISTS users (
-  id            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(100) NOT NULL,
-  username      VARCHAR(30)  NOT NULL UNIQUE,
-  email         VARCHAR(150) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role          ENUM('admin','editor') NOT NULL DEFAULT 'editor',
-  is_active     TINYINT(1) NOT NULL DEFAULT 1,
-  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `email` varchar(120) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role` enum('admin','editor') NOT NULL DEFAULT 'editor',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Kategori dipakai artikel budaya (type = budaya) dan destinasi wisata (type = wisata)
-CREATE TABLE IF NOT EXISTS categories (
-  id   INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(80)  NOT NULL,
-  slug VARCHAR(100) NOT NULL,
-  type ENUM('budaya','wisata') NOT NULL,
-  UNIQUE KEY uq_kategori (type, slug)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `categories` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `slug` varchar(120) NOT NULL,
+  `type` enum('budaya','wisata','galeri') NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Artikel sejarah (type = sejarah) dan budaya (type = budaya)
-CREATE TABLE IF NOT EXISTS articles (
-  id             INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  type           ENUM('sejarah','budaya') NOT NULL,
-  category_id    INT UNSIGNED NULL,
-  title          VARCHAR(200) NOT NULL,
-  slug           VARCHAR(220) NOT NULL UNIQUE,
-  summary        VARCHAR(300) NOT NULL,
-  content        MEDIUMTEXT   NOT NULL,
-  reference_text TEXT NULL,
-  image          VARCHAR(100) NULL,
-  status         ENUM('draft','published') NOT NULL DEFAULT 'draft',
-  author_id      INT UNSIGNED NULL,
-  created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY idx_tipe_status (type, status),
-  CONSTRAINT fk_artikel_kategori FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
-  CONSTRAINT fk_artikel_penulis  FOREIGN KEY (author_id)   REFERENCES users(id)      ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `articles` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED DEFAULT NULL,
+  `author_id` int(10) UNSIGNED DEFAULT NULL,
+  `type` enum('sejarah','budaya') NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `slug` varchar(220) NOT NULL,
+  `summary` varchar(500) DEFAULT NULL,
+  `content` mediumtext NOT NULL,
+  `featured_image` varchar(255) DEFAULT NULL,
+  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
+  `is_featured` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS destinations (
-  id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  category_id INT UNSIGNED NULL,
-  title       VARCHAR(200) NOT NULL,
-  slug        VARCHAR(220) NOT NULL UNIQUE,
-  summary     VARCHAR(300) NOT NULL,
-  description MEDIUMTEXT   NOT NULL,
-  address     VARCHAR(255) NULL,
-  latitude    DECIMAL(10,7) NULL,
-  longitude   DECIMAL(10,7) NULL,
-  image       VARCHAR(100) NULL,
-  status      ENUM('draft','published') NOT NULL DEFAULT 'draft',
-  author_id   INT UNSIGNED NULL,
-  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY idx_status (status),
-  CONSTRAINT fk_wisata_kategori FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
-  CONSTRAINT fk_wisata_penulis  FOREIGN KEY (author_id)   REFERENCES users(id)      ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `destinations` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED DEFAULT NULL,
+  `author_id` int(10) UNSIGNED DEFAULT NULL,
+  `name` varchar(150) NOT NULL,
+  `slug` varchar(170) NOT NULL,
+  `description` mediumtext NOT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `latitude` decimal(10,7) DEFAULT NULL,
+  `longitude` decimal(10,7) DEFAULT NULL,
+  `is_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `featured_image` varchar(255) DEFAULT NULL,
+  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS galleries (
-  id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  title       VARCHAR(150) NOT NULL,
-  category    ENUM('Budaya','Wisata') NOT NULL,
-  description VARCHAR(300) NOT NULL DEFAULT '',
-  source      VARCHAR(255) NOT NULL,
-  image       VARCHAR(100) NOT NULL,
-  created_by  INT UNSIGNED NULL,
-  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_galeri_pembuat FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS `galleries` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED DEFAULT NULL,
+  `uploaded_by` int(10) UNSIGNED DEFAULT NULL,
+  `title` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `image_path` varchar(255) NOT NULL,
+  `source` varchar(255) DEFAULT NULL,
+  `license_info` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Kategori awal (sama dengan daftar di includes/data-contoh.php)
-INSERT IGNORE INTO categories (name, slug, type) VALUES
+CREATE TABLE IF NOT EXISTS `reference_sources` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `article_id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `url` varchar(500) DEFAULT NULL,
+  `publisher` varchar(150) DEFAULT NULL,
+  `publication_year` smallint(5) UNSIGNED DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `articles`
+--
+ALTER TABLE `articles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_articles_slug` (`slug`),
+  ADD KEY `idx_articles_status_type` (`status`,`type`),
+  ADD KEY `idx_articles_category` (`category_id`),
+  ADD KEY `idx_articles_featured` (`is_featured`),
+  ADD KEY `fk_articles_author` (`author_id`);
+ALTER TABLE `articles` ADD FULLTEXT KEY `ft_articles` (`title`,`summary`,`content`);
+
+--
+-- Indexes for table `categories`
+--
+ALTER TABLE `categories`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_categories_slug` (`slug`),
+  ADD KEY `idx_categories_type` (`type`);
+
+--
+-- Indexes for table `destinations`
+--
+ALTER TABLE `destinations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_destinations_slug` (`slug`),
+  ADD KEY `idx_destinations_status` (`status`),
+  ADD KEY `idx_destinations_category` (`category_id`),
+  ADD KEY `fk_destinations_author` (`author_id`);
+ALTER TABLE `destinations` ADD FULLTEXT KEY `ft_destinations` (`name`,`description`);
+
+--
+-- Indexes for table `galleries`
+--
+ALTER TABLE `galleries`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_galleries_category` (`category_id`),
+  ADD KEY `fk_galleries_user` (`uploaded_by`);
+
+--
+-- Indexes for table `reference_sources`
+--
+ALTER TABLE `reference_sources`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_reference_article` (`article_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_users_username` (`username`),
+  ADD UNIQUE KEY `uq_users_email` (`email`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `articles`
+--
+ALTER TABLE `articles`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `categories`
+--
+ALTER TABLE `categories`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `destinations`
+--
+ALTER TABLE `destinations`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `galleries`
+--
+ALTER TABLE `galleries`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `reference_sources`
+--
+ALTER TABLE `reference_sources`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `articles`
+--
+ALTER TABLE `articles`
+  ADD CONSTRAINT `fk_articles_author` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_articles_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `destinations`
+--
+ALTER TABLE `destinations`
+  ADD CONSTRAINT `fk_destinations_author` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_destinations_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `galleries`
+--
+ALTER TABLE `galleries`
+  ADD CONSTRAINT `fk_galleries_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_galleries_user` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `reference_sources`
+--
+ALTER TABLE `reference_sources`
+  ADD CONSTRAINT `fk_reference_article` FOREIGN KEY (`article_id`) REFERENCES `articles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Kategori awal. INSERT IGNORE: aman dijalankan berulang (slug bersifat unik).
+INSERT IGNORE INTO `categories` (`name`, `slug`, `type`) VALUES
   ('Adat Istiadat',     'adat-istiadat',     'budaya'),
   ('Tradisi',           'tradisi',           'budaya'),
   ('Kesenian dan Tari', 'kesenian-dan-tari', 'budaya'),
@@ -90,4 +224,6 @@ INSERT IGNORE INTO categories (name, slug, type) VALUES
   ('Wisata Alam',       'wisata-alam',       'wisata'),
   ('Wisata Sejarah',    'wisata-sejarah',    'wisata'),
   ('Wisata Pantai',     'wisata-pantai',     'wisata'),
-  ('Wisata Religi',     'wisata-religi',     'wisata');
+  ('Wisata Religi',     'wisata-religi',     'wisata'),
+  ('Budaya',            'galeri-budaya',     'galeri'),
+  ('Wisata',            'galeri-wisata',     'galeri');

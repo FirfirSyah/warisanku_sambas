@@ -13,8 +13,8 @@ $where  = ['a.type = :tipe'];
 $params = [':tipe' => $tipe];
 if ($q !== '') {
     $where[] = '(a.title LIKE :q1 OR a.summary LIKE :q2)';
-    $params[':q1'] = '%' . $q . '%';
-    $params[':q2'] = '%' . $q . '%';
+    $params[':q1'] = like_aman($q);
+    $params[':q2'] = like_aman($q);
 }
 if (in_array($status, ['draft', 'published'], true)) {
     $where[] = 'a.status = :st';
@@ -27,7 +27,7 @@ $stmt->execute($params);
 $total = (int) $stmt->fetchColumn();
 
 $stmt = db()->prepare(
-    "SELECT a.id, a.title, a.status, a.image, a.created_at, c.name AS kategori
+    "SELECT a.id, a.title, a.status, a.featured_image AS image, a.created_at, c.name AS kategori
        FROM articles a LEFT JOIN categories c ON c.id = a.category_id
       WHERE $whereSql ORDER BY a.created_at DESC, a.id DESC LIMIT :lim OFFSET :off"
 );

@@ -22,7 +22,8 @@ if ($id > 0) {
         exit('Artikel tidak ditemukan.');
     }
     $data       = array_merge($data, $row);
-    $gambarLama = $row['image'];
+    $gambarLama = $row['featured_image'];
+    $data['reference_text'] = referensi_ke_teks($id);
 }
 
 $errors = [];
@@ -50,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($cfg['kategori'] && $kategoriId === null) {
         $errors[] = 'Pilih kategori.';
     }
+    $daftarRef = parse_referensi($data['reference_text'], $errors);
 
     $gambarBaru = null;
     if (!$errors) {
@@ -65,35 +67,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         try {
+            db()->beginTransaction();
             if ($id > 0) {
                 $stmt = db()->prepare(
                     'UPDATE articles SET category_id = :cat, title = :title, summary = :sum, content = :isi,
-                            reference_text = :ref, image = :img, status = :st
+                            featured_image = :img, status = :st
                       WHERE id = :id AND type = :t'
                 );
                 $stmt->execute([
                     ':cat' => $kategoriId, ':title' => $data['title'], ':sum' => $data['summary'],
-                    ':isi' => $data['content'], ':ref' => $data['reference_text'] !== '' ? $data['reference_text'] : null,
-                    ':img' => $gambarSimpan, ':st' => $data['status'], ':id' => $id, ':t' => $tipe,
+                    ':isi' => $data['content'], ':img' => $gambarSimpan, ':st' => $data['status'],
+                    ':id' => $id, ':t' => $tipe,
                 ]);
+                $artikelId = $id;
             } else {
                 $stmt = db()->prepare(
-                    'INSERT INTO articles (type, category_id, title, slug, summary, content, reference_text, image, status, author_id)
-                     VALUES (:t, :cat, :title, :slug, :sum, :isi, :ref, :img, :st, :au)'
+                    'INSERT INTO articles (type, category_id, title, slug, summary, content, featured_image, status, author_id)
+                     VALUES (:t, :cat, :title, :slug, :sum, :isi, :img, :st, :au)'
                 );
                 $stmt->execute([
                     ':t' => $tipe, ':cat' => $kategoriId, ':title' => $data['title'],
                     ':slug' => slug_unik('articles', $data['title']), ':sum' => $data['summary'],
-                    ':isi' => $data['content'], ':ref' => $data['reference_text'] !== '' ? $data['reference_text'] : null,
-                    ':img' => $gambarSimpan, ':st' => $data['status'], ':au' => current_user()['id'],
+                    ':isi' => $data['content'], ':img' => $gambarSimpan, ':st' => $data['status'],
+                    ':au' => current_user()['id'],
                 ]);
+                $artikelId = (int) db()->lastInsertId();
             }
+            simpan_referensi($artikelId, $daftarRef);
+            db()->commit();
             if ($gambarSimpan !== $gambarLama) {
                 hapus_gambar($gambarLama);
             }
             set_flash('success', 'Artikel berhasil disimpan.');
             redirect($cfg['folder'] . '/index.php');
         } catch (PDOException $ex) {
+            if (db()->inTransaction()) {
+                db()->rollBack();
+            }
             error_log('Simpan artikel gagal: ' . $ex->getMessage());
             hapus_gambar($gambarBaru);
             $errors[] = 'Data gagal disimpan. Coba lagi.';
@@ -156,7 +166,7 @@ require __DIR__ . '/admin-header.php';
   <div class="adm-field">
     <label for="reference_text" class="adm-label">Sumber referensi</label>
     <textarea id="reference_text" name="reference_text" class="adm-textarea"><?= e((string) $data['reference_text']) ?></textarea>
-    <p class="adm-hint">Satu sumber per baris (buku, jurnal, narasumber, atau tautan).</p>
+    <p class="adm-hint">Satu sumber per baris. Tautan opsional: tulis <code>Judul sumber | https://alamat-tautan</code>. Judul tidak boleh memuat tanda &quot;|&quot;.</p>
   </div>
 
   <div class="adm-field">

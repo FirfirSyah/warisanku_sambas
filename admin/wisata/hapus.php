@@ -5,7 +5,7 @@ require_login();
 wajib_post('admin/wisata/index.php');
 
 $id = (int) ($_POST['id'] ?? 0);
-$stmt = db()->prepare('SELECT image FROM destinations WHERE id = :id');
+$stmt = db()->prepare('SELECT featured_image AS image FROM destinations WHERE id = :id');
 $stmt->execute([':id' => $id]);
 $row = $stmt->fetch();
 

@@ -16,7 +16,7 @@ function slugify(string $teks): string
     return $teks !== '' ? mb_substr($teks, 0, 100) : 'konten';
 }
 
-/** Slug unik pada tabel tertentu. $abaikanId dipakai saat mengedit data yang sama. */
+/** Slug unik pada tabel tertentu (di database ini slug kategori unik lintas jenis). $abaikanId dipakai saat mengedit data yang sama. */
 function slug_unik(string $tabel, string $judul, ?int $abaikanId = null, ?string $tipe = null): string
 {
     $diizinkan = ['articles', 'destinations', 'categories'];
@@ -31,10 +31,6 @@ function slug_unik(string $tabel, string $judul, ?int $abaikanId = null, ?string
     while (true) {
         $sql    = "SELECT COUNT(*) FROM `$tabel` WHERE slug = :s AND id <> :id";
         $params = [':s' => $slug, ':id' => $abaikanId ?? 0];
-        if ($tabel === 'categories' && $tipe !== null) {
-            $sql .= ' AND type = :t';
-            $params[':t'] = $tipe;
-        }
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
         if ((int) $stmt->fetchColumn() === 0) {
@@ -112,6 +108,63 @@ function post_teks(string $kunci): string
 {
     $v = $_POST[$kunci] ?? '';
     return is_string($v) ? trim($v) : '';
+}
+
+/**
+ * Baca sumber referensi dari textarea: satu baris satu sumber.
+ * Format "Judul" atau "Judul | https://tautan". Kesalahan masuk ke $errors.
+ */
+function parse_referensi(string $teks, array &$errors): array
+{
+    $hasil = [];
+    foreach (preg_split('/\R/', $teks) ?: [] as $n => $baris) {
+        $baris = trim($baris);
+        if ($baris === '') {
+            continue;
+        }
+        [$judul, $url] = array_map('trim', array_pad(explode('|', $baris, 2), 2, ''));
+        $no = $n + 1;
+        if ($judul === '' || mb_strlen($judul) > 255) {
+            $errors[] = "Referensi baris $no: judul wajib diisi, maksimal 255 karakter.";
+            continue;
+        }
+        if ($url !== '' && (!preg_match('#^https?://#i', $url) || !filter_var($url, FILTER_VALIDATE_URL) || mb_strlen($url) > 500)) {
+            $errors[] = "Referensi baris $no: tautan harus diawali http:// atau https:// (maksimal 500 karakter).";
+            continue;
+        }
+        $hasil[] = ['judul' => $judul, 'url' => $url !== '' ? $url : null];
+    }
+    if (count($hasil) > 30) {
+        $errors[] = 'Sumber referensi maksimal 30 baris.';
+    }
+    return $hasil;
+}
+
+/** Ganti seluruh referensi sebuah artikel (panggil di dalam transaksi). */
+function simpan_referensi(int $artikelId, array $daftar): void
+{
+    db()->prepare('DELETE FROM reference_sources WHERE article_id = :a')->execute([':a' => $artikelId]);
+    $ins = db()->prepare('INSERT INTO reference_sources (article_id, title, url) VALUES (:a, :t, :u)');
+    foreach ($daftar as $r) {
+        $ins->execute([':a' => $artikelId, ':t' => $r['judul'], ':u' => $r['url']]);
+    }
+}
+
+/** Referensi artikel dalam bentuk teks untuk diisi ke textarea saat mengedit. */
+function referensi_ke_teks(int $artikelId): string
+{
+    $stmt = db()->prepare('SELECT title, url FROM reference_sources WHERE article_id = :a ORDER BY id');
+    $stmt->execute([':a' => $artikelId]);
+    return implode("\n", array_map(
+        fn($r) => $r['url'] ? $r['title'] . ' | ' . $r['url'] : $r['title'],
+        $stmt->fetchAll()
+    ));
+}
+
+/** Pola LIKE yang aman: karakter % dan _ dari pengguna dianggap teks biasa. */
+function like_aman(string $q): string
+{
+    return '%' . addcslashes($q, '%_\\') . '%';
 }
 
 /** Halaman aktif dari ?page= (minimal 1). */

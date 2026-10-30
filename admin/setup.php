@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!preg_match('/^[A-Za-z0-9_]{4,30}$/', $old['username'])) {
         $errors[] = 'Username 4 sampai 30 karakter: huruf, angka, atau garis bawah.';
     }
-    if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
+    if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL) || mb_strlen($old['email']) > 120) {
         $errors[] = 'Format email tidak valid.';
     }
     if (strlen($password) < 10) {

@@ -23,6 +23,19 @@ function nama_kategori(string $tipe): array
     return array_column($stmt->fetchAll(), 'name');
 }
 
+/** Ringkasan pendek dari teks panjang: paragraf pertama, dipotong di batas kata. */
+function ringkas(string $teks, int $panjang = 160): string
+{
+    $paragraf = preg_split('/\R{2,}/', trim($teks))[0] ?? '';
+    $paragraf = trim((string) preg_replace('/\s+/u', ' ', $paragraf));
+    if (mb_strlen($paragraf) <= $panjang) {
+        return $paragraf;
+    }
+    $potong = mb_substr($paragraf, 0, $panjang);
+    $spasi  = mb_strrpos($potong, ' ');
+    return rtrim($spasi !== false && $spasi > $panjang * 0.6 ? mb_substr($potong, 0, $spasi) : $potong, ' ,.;:') . '...';
+}
+
 /** Ubah satu baris database menjadi item untuk includes/kartu.php. */
 function item_kartu(array $r, string $jenis): array
 {
@@ -30,7 +43,7 @@ function item_kartu(array $r, string $jenis): array
     return [
         'id'        => (int) $r['id'],
         'judul'     => $r['title'],
-        'ringkasan' => $r['summary'],
+        'ringkasan' => $r['summary'] ?? ringkas((string) ($r['deskripsi'] ?? '')),
         'kategori'  => $r['kategori'] ?? ($jenis === 'sejarah' ? 'Sejarah' : 'Warisan Sambas'),
         'url'       => base_url('pages/' . $halaman . '?id=' . (int) $r['id']),
         'gambar'    => !empty($r['image']) ? gambar_url($r['image']) : null,
@@ -59,7 +72,7 @@ function cari_konten(string $jenis, string $q = '', string $kat = '', int $hal =
     }
     if ($q !== '') {
         $like = '%' . addcslashes($q, '%_\\') . '%';
-        $where[] = '(x.title LIKE :q1 OR x.summary LIKE :q2)';
+        $where[] = $wisata ? '(x.name LIKE :q1 OR x.description LIKE :q2)' : '(x.title LIKE :q1 OR x.summary LIKE :q2)';
         $params[':q1'] = $like;
         $params[':q2'] = $like;
     }
@@ -67,6 +80,9 @@ function cari_konten(string $jenis, string $q = '', string $kat = '', int $hal =
         $where[] = 'c.name = :kat';
         $params[':kat'] = $kat;
     }
+    $kolom = $wisata
+        ? 'x.id, x.name AS title, x.description AS deskripsi, x.featured_image AS image, c.name AS kategori'
+        : 'x.id, x.title, x.summary, x.featured_image AS image, c.name AS kategori';
     $dasar = "FROM $dari x LEFT JOIN categories c ON c.id = x.category_id WHERE " . implode(' AND ', $where);
 
     $stmt = db()->prepare("SELECT COUNT(*) $dasar");
@@ -74,7 +90,7 @@ function cari_konten(string $jenis, string $q = '', string $kat = '', int $hal =
     $total = (int) $stmt->fetchColumn();
 
     $stmt = db()->prepare(
-        "SELECT x.id, x.title, x.summary, x.image, c.name AS kategori $dasar
+        "SELECT $kolom $dasar
           ORDER BY x.created_at DESC, x.id DESC LIMIT :lim OFFSET :off"
     );
     foreach ($params as $k => $v) {
@@ -101,28 +117,44 @@ function ambil_detail(string $jenis, int $id): ?array
 {
     if ($jenis === 'wisata') {
         $stmt = db()->prepare(
-            "SELECT x.*, c.name AS kategori FROM destinations x
+            "SELECT x.*, x.name AS title, x.featured_image AS image, c.name AS kategori FROM destinations x
                LEFT JOIN categories c ON c.id = x.category_id
               WHERE x.id = :id AND x.status = 'published'"
         );
         $stmt->execute([':id' => $id]);
     } else {
         $stmt = db()->prepare(
-            "SELECT x.*, c.name AS kategori FROM articles x
+            "SELECT x.*, x.featured_image AS image, c.name AS kategori FROM articles x
                LEFT JOIN categories c ON c.id = x.category_id
               WHERE x.id = :id AND x.type = :t AND x.status = 'published'"
         );
         $stmt->execute([':id' => $id, ':t' => $jenis]);
     }
     $row = $stmt->fetch();
-    return $row ?: null;
+    if (!$row) {
+        return null;
+    }
+    if ($jenis !== 'wisata') {
+        $row['referensi'] = ambil_referensi((int) $row['id']);
+    }
+    return $row;
+}
+
+/** Daftar sumber referensi sebuah artikel (tabel reference_sources). */
+function ambil_referensi(int $artikelId): array
+{
+    $stmt = db()->prepare('SELECT title, url, publisher, publication_year FROM reference_sources WHERE article_id = :a ORDER BY id');
+    $stmt->execute([':a' => $artikelId]);
+    return $stmt->fetchAll();
 }
 
 function ambil_galeri(int $batas = 60): array
 {
     $stmt = db()->prepare(
-        'SELECT id, title, category, description, source, image FROM galleries
-          ORDER BY created_at DESC, id DESC LIMIT :n'
+        "SELECT g.id, g.title, COALESCE(c.name, '') AS category, COALESCE(g.description, '') AS description,
+                CONCAT_WS(' / ', NULLIF(g.source, ''), NULLIF(g.license_info, '')) AS source, g.image_path AS image
+           FROM galleries g LEFT JOIN categories c ON c.id = g.category_id
+          ORDER BY g.created_at DESC, g.id DESC LIMIT :n"
     );
     $stmt->bindValue(':n', $batas, PDO::PARAM_INT);
     $stmt->execute();
@@ -151,6 +183,21 @@ function render_daftar(string $teks): string
         if ($baris !== '') {
             $hasil .= '<li>' . e($baris) . '</li>';
         }
+    }
+    return $hasil === '' ? '' : '<ul class="mt-2 list-disc space-y-1 pl-8 text-sm text-hijau/80">' . $hasil . '</ul>';
+}
+
+/** Daftar referensi artikel. Judul menjadi tautan bila ada URL http(s). */
+function render_referensi(array $baris): string
+{
+    $hasil = '';
+    foreach ($baris as $r) {
+        $judul = e($r['title']);
+        if (!empty($r['url']) && preg_match('#^https?://#i', $r['url'])) {
+            $judul = '<a href="' . e($r['url']) . '" target="_blank" rel="noopener noreferrer" class="text-marun hover:underline">' . $judul . '</a>';
+        }
+        $tambahan = array_filter([$r['publisher'] ?? '', $r['publication_year'] ?? ''], fn($v) => $v !== '' && $v !== null);
+        $hasil .= '<li>' . $judul . ($tambahan ? ' &mdash; ' . e(implode(', ', $tambahan)) : '') . '</li>';
     }
     return $hasil === '' ? '' : '<ul class="mt-2 list-disc space-y-1 pl-8 text-sm text-hijau/80">' . $hasil . '</ul>';
 }

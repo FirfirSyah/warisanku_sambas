@@ -10,10 +10,10 @@ $hal    = halaman_aktif();
 $where  = ['1 = 1'];
 $params = [];
 if ($q !== '') {
-    $where[] = '(d.title LIKE :q1 OR d.summary LIKE :q2 OR d.address LIKE :q3)';
-    $params[':q1'] = '%' . $q . '%';
-    $params[':q2'] = '%' . $q . '%';
-    $params[':q3'] = '%' . $q . '%';
+    $where[] = '(d.name LIKE :q1 OR d.description LIKE :q2 OR d.address LIKE :q3)';
+    $params[':q1'] = like_aman($q);
+    $params[':q2'] = like_aman($q);
+    $params[':q3'] = like_aman($q);
 }
 if (in_array($status, ['draft', 'published'], true)) {
     $where[] = 'd.status = :st';
@@ -26,7 +26,7 @@ $stmt->execute($params);
 $total = (int) $stmt->fetchColumn();
 
 $stmt = db()->prepare(
-    "SELECT d.id, d.title, d.status, d.image, d.address, d.created_at, c.name AS kategori
+    "SELECT d.id, d.name AS title, d.status, d.featured_image AS image, d.address, d.created_at, c.name AS kategori
        FROM destinations d LEFT JOIN categories c ON c.id = d.category_id
       WHERE $whereSql ORDER BY d.created_at DESC, d.id DESC LIMIT :lim OFFSET :off"
 );

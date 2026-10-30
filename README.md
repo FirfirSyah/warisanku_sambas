@@ -3,7 +3,8 @@ warisan sambas sampai ke kita untuk di lanjutkan dan dibudayakan
 
 ## Menjalankan panel admin (XAMPP)
 1. Taruh folder ini di `htdocs/warisanku_sambas`, nyalakan Apache dan MySQL.
-2. Impor `database/schema.sql` lewat phpMyAdmin (tab Import). Database dan 10 kategori awal dibuat otomatis.
+2. Impor `database/schema.sql` lewat phpMyAdmin (tab Import). Database, 6 tabel, dan kategori awal dibuat otomatis.
+   Jika database sudah ada (mis. dari ekspor phpMyAdmin) tetapi kategorinya kosong, jalankan saja `database/seed_kategori.sql`.
 3. Sesuaikan `config/database.php` dan `BASE_URL` di `config/app.php` bila perlu.
 4. Buka `http://localhost/warisanku_sambas/admin/setup.php`, buat akun admin pertama, lalu HAPUS file `admin/setup.php`.
 5. Login di `http://localhost/warisanku_sambas/admin/login.php`.

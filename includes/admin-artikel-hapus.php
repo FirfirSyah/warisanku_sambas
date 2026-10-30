@@ -8,7 +8,7 @@ $cfg = cfg_artikel($tipe);
 wajib_post($cfg['folder'] . '/index.php');
 
 $id = (int) ($_POST['id'] ?? 0);
-$stmt = db()->prepare('SELECT image FROM articles WHERE id = :id AND type = :t');
+$stmt = db()->prepare('SELECT featured_image AS image FROM articles WHERE id = :id AND type = :t');
 $stmt->execute([':id' => $id, ':t' => $tipe]);
 $row = $stmt->fetch();
 

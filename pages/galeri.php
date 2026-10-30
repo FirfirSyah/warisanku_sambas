@@ -17,8 +17,9 @@ require __DIR__ . '/../includes/judul-halaman.php';
   <?php else: ?>
   <div class="flex flex-wrap gap-2" id="filter-galeri">
     <button type="button" data-filter="semua" aria-pressed="true" class="rounded-full border border-emas bg-hijau px-4 py-1 text-sm text-emas">Semua</button>
-    <button type="button" data-filter="Budaya" aria-pressed="false" class="rounded-full border border-emas bg-gading px-4 py-1 text-sm hover:bg-emas">Budaya</button>
-    <button type="button" data-filter="Wisata" aria-pressed="false" class="rounded-full border border-emas bg-gading px-4 py-1 text-sm hover:bg-emas">Wisata</button>
+    <?php foreach (nama_kategori('galeri') as $namaKat): ?>
+      <button type="button" data-filter="<?= e($namaKat) ?>" aria-pressed="false" class="rounded-full border border-emas bg-gading px-4 py-1 text-sm hover:bg-emas"><?= e($namaKat) ?></button>
+    <?php endforeach; ?>
   </div>
 
   <div class="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">

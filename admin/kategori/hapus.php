@@ -8,9 +8,10 @@ $id = (int) ($_POST['id'] ?? 0);
 
 $stmt = db()->prepare(
     'SELECT (SELECT COUNT(*) FROM articles WHERE category_id = :a)
-          + (SELECT COUNT(*) FROM destinations WHERE category_id = :d)'
+          + (SELECT COUNT(*) FROM destinations WHERE category_id = :d)
+          + (SELECT COUNT(*) FROM galleries WHERE category_id = :g)'
 );
-$stmt->execute([':a' => $id, ':d' => $id]);
+$stmt->execute([':a' => $id, ':d' => $id, ':g' => $id]);
 $dipakai = (int) $stmt->fetchColumn();
 
 if ($dipakai > 0) {

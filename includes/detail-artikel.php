@@ -43,7 +43,7 @@ require __DIR__ . '/header.php';
 
     <section class="mt-8 rounded border border-emas bg-gading p-4">
       <h2 class="font-serif text-lg font-bold">Sumber Referensi</h2>
-      <?php $daftarRef = render_daftar((string) ($item['reference_text'] ?? '')); ?>
+      <?php $daftarRef = render_referensi($item['referensi'] ?? []); ?>
       <?php if ($daftarRef !== ''): ?>
         <?= $daftarRef ?>
       <?php else: ?>

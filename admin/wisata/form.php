@@ -5,8 +5,8 @@ require_login();
 
 $id = (int) ($_GET['id'] ?? 0);
 $data = [
-    'title' => '', 'category_id' => '', 'summary' => '', 'description' => '',
-    'address' => '', 'latitude' => '', 'longitude' => '', 'status' => 'draft', 'image' => null,
+    'name' => '', 'category_id' => '', 'description' => '',
+    'address' => '', 'latitude' => '', 'longitude' => '', 'is_verified' => 0, 'status' => 'draft',
 ];
 $gambarLama = null;
 
@@ -19,8 +19,7 @@ if ($id > 0) {
         exit('Destinasi tidak ditemukan.');
     }
     $data = array_merge($data, array_map(fn($v) => $v ?? '', $row));
-    $data['image'] = $row['image'];
-    $gambarLama = $row['image'];
+    $gambarLama = $row['featured_image'];
 }
 
 $errors = [];
@@ -28,24 +27,21 @@ $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
 
-    $data['title']       = post_teks('title');
-    $data['summary']     = post_teks('summary');
+    $data['name']        = post_teks('name');
     $data['description'] = post_teks('description');
     $data['address']     = post_teks('address');
     $data['latitude']    = str_replace(',', '.', post_teks('latitude'));
     $data['longitude']   = str_replace(',', '.', post_teks('longitude'));
     $data['status']      = post_teks('status') === 'published' ? 'published' : 'draft';
+    $data['is_verified'] = isset($_POST['is_verified']) ? 1 : 0;
     $kategoriId          = kategori_valid($_POST['category_id'] ?? 0, 'wisata');
     $data['category_id'] = $kategoriId ?? '';
 
-    if (mb_strlen($data['title']) < 3 || mb_strlen($data['title']) > 200) {
-        $errors[] = 'Nama destinasi harus 3 sampai 200 karakter.';
+    if (mb_strlen($data['name']) < 3 || mb_strlen($data['name']) > 150) {
+        $errors[] = 'Nama destinasi harus 3 sampai 150 karakter.';
     }
     if ($kategoriId === null) {
         $errors[] = 'Pilih kategori.';
-    }
-    if (mb_strlen($data['summary']) < 10 || mb_strlen($data['summary']) > 300) {
-        $errors[] = 'Ringkasan harus 10 sampai 300 karakter.';
     }
     if (mb_strlen($data['description']) < 20) {
         $errors[] = 'Deskripsi minimal 20 karakter.';
@@ -68,6 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    if ($data['is_verified'] === 1 && $lat === null) {
+        $errors[] = 'Koordinat baru bisa ditandai terverifikasi bila latitude dan longitude diisi.';
+    }
+
     $gambarBaru = null;
     if (!$errors) {
         $gambarBaru = unggah_gambar('image', $errors);
@@ -85,24 +85,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($id > 0) {
                 $stmt = db()->prepare(
-                    'UPDATE destinations SET category_id = :cat, title = :title, summary = :sum, description = :des,
-                            address = :adr, latitude = :lat, longitude = :lng, image = :img, status = :st
+                    'UPDATE destinations SET category_id = :cat, name = :name, description = :des,
+                            address = :adr, latitude = :lat, longitude = :lng, is_verified = :ver,
+                            featured_image = :img, status = :st
                       WHERE id = :id'
                 );
                 $stmt->execute([
-                    ':cat' => $kategoriId, ':title' => $data['title'], ':sum' => $data['summary'],
-                    ':des' => $data['description'], ':adr' => $alamat, ':lat' => $lat, ':lng' => $lng,
+                    ':cat' => $kategoriId, ':name' => $data['name'], ':des' => $data['description'],
+                    ':adr' => $alamat, ':lat' => $lat, ':lng' => $lng, ':ver' => $data['is_verified'],
                     ':img' => $gambarSimpan, ':st' => $data['status'], ':id' => $id,
                 ]);
             } else {
                 $stmt = db()->prepare(
-                    'INSERT INTO destinations (category_id, title, slug, summary, description, address, latitude, longitude, image, status, author_id)
-                     VALUES (:cat, :title, :slug, :sum, :des, :adr, :lat, :lng, :img, :st, :au)'
+                    'INSERT INTO destinations (category_id, name, slug, description, address, latitude, longitude, is_verified, featured_image, status, author_id)
+                     VALUES (:cat, :name, :slug, :des, :adr, :lat, :lng, :ver, :img, :st, :au)'
                 );
                 $stmt->execute([
-                    ':cat' => $kategoriId, ':title' => $data['title'], ':slug' => slug_unik('destinations', $data['title']),
-                    ':sum' => $data['summary'], ':des' => $data['description'], ':adr' => $alamat,
-                    ':lat' => $lat, ':lng' => $lng, ':img' => $gambarSimpan, ':st' => $data['status'],
+                    ':cat' => $kategoriId, ':name' => $data['name'], ':slug' => slug_unik('destinations', $data['name']),
+                    ':des' => $data['description'], ':adr' => $alamat, ':lat' => $lat, ':lng' => $lng,
+                    ':ver' => $data['is_verified'], ':img' => $gambarSimpan, ':st' => $data['status'],
                     ':au' => current_user()['id'],
                 ]);
             }
@@ -132,8 +133,8 @@ require __DIR__ . '/../../includes/admin-header.php';
   <?= csrf_field() ?>
 
   <div class="adm-field">
-    <label for="title" class="adm-label">Nama destinasi</label>
-    <input id="title" name="title" required maxlength="200" value="<?= e($data['title']) ?>" class="adm-input">
+    <label for="name" class="adm-label">Nama destinasi</label>
+    <input id="name" name="name" required maxlength="150" value="<?= e($data['name']) ?>" class="adm-input">
   </div>
 
   <div class="adm-grid-2">
@@ -156,15 +157,9 @@ require __DIR__ . '/../../includes/admin-header.php';
   </div>
 
   <div class="adm-field">
-    <label for="summary" class="adm-label">Ringkasan</label>
-    <textarea id="summary" name="summary" required maxlength="300" class="adm-textarea" style="min-height:4.5rem"><?= e($data['summary']) ?></textarea>
-    <p class="adm-hint">10 sampai 300 karakter. Tampil di kartu daftar.</p>
-  </div>
-
-  <div class="adm-field">
     <label for="description" class="adm-label">Deskripsi lengkap</label>
     <textarea id="description" name="description" required class="adm-textarea adm-textarea--besar"><?= e($data['description']) ?></textarea>
-    <p class="adm-hint">Pisahkan paragraf dengan satu baris kosong.</p>
+    <p class="adm-hint">Pisahkan paragraf dengan satu baris kosong. Paragraf pertama otomatis menjadi ringkasan di kartu daftar.</p>
   </div>
 
   <div class="adm-field">
@@ -182,7 +177,10 @@ require __DIR__ . '/../../includes/admin-header.php';
       <input id="longitude" name="longitude" inputmode="decimal" value="<?= e((string) $data['longitude']) ?>" placeholder="contoh: 109.3000" class="adm-input">
     </div>
   </div>
-  <p class="adm-hint" style="margin-top:-.5rem;margin-bottom:1rem">Opsional. Isi hanya setelah koordinat diverifikasi (mis. lewat Google Maps).</p>
+  <p class="adm-hint" style="margin-top:-.5rem;margin-bottom:.5rem">Opsional. Isi hanya setelah koordinat diperiksa (mis. lewat Google Maps).</p>
+  <div class="adm-field">
+    <label class="adm-cek"><input type="checkbox" name="is_verified" value="1" <?= (int) $data['is_verified'] === 1 ? 'checked' : '' ?>> Koordinat sudah diverifikasi</label>
+  </div>
 
   <div class="adm-field">
     <label for="image" class="adm-label">Gambar</label>

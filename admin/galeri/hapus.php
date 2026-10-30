@@ -5,7 +5,7 @@ require_login();
 wajib_post('admin/galeri/index.php');
 
 $id = (int) ($_POST['id'] ?? 0);
-$stmt = db()->prepare('SELECT image FROM galleries WHERE id = :id');
+$stmt = db()->prepare('SELECT image_path AS image FROM galleries WHERE id = :id');
 $stmt->execute([':id' => $id]);
 $row = $stmt->fetch();
 

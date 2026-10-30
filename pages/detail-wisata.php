@@ -36,7 +36,6 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
     <div class="mt-6 space-y-4 leading-relaxed">
-      <p class="font-semibold"><?= e($item['summary']) ?></p>
       <?= render_paragraf($item['description']) ?>
     </div>
 
