@@ -1,0 +1,43 @@
+/* Gaya khusus panel admin. Berdiri sendiri supaya tidak perlu build ulang Tailwind. */
+.adm-bar{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.adm-cari{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.adm-btn{display:inline-block;border:1px solid #173C30;border-radius:.375rem;background:#173C30;color:#D8B66A;padding:.45rem .9rem;font-size:.875rem;font-weight:600;line-height:1.3;text-decoration:none;cursor:pointer}
+.adm-btn:hover{background:#6F2935;border-color:#6F2935;color:#FFFAF0}
+.adm-btn--garis{background:transparent;color:#173C30}
+.adm-btn--bahaya{background:transparent;border-color:#6F2935;color:#6F2935}
+.adm-btn--kecil{padding:.25rem .6rem;font-size:.8125rem}
+.adm-kartu{background:#FFFAF0;border:1px solid #D8B66A;border-radius:.5rem;padding:1rem}
+.adm-tabel-wrap{overflow-x:auto;border:1px solid #D8B66A;border-radius:.5rem;background:#FFFAF0}
+.adm-tabel{width:100%;border-collapse:collapse;font-size:.9rem}
+.adm-tabel th{background:#173C30;color:#D8B66A;text-align:left;padding:.6rem .75rem;white-space:nowrap}
+.adm-tabel td{padding:.6rem .75rem;border-top:1px solid rgba(216,182,106,.5);vertical-align:middle}
+.adm-tabel tr:hover td{background:rgba(216,182,106,.12)}
+.adm-aksi{display:flex;gap:.4rem;align-items:center}
+.adm-aksi form{margin:0}
+.adm-kosong{padding:1.5rem;text-align:center}
+.adm-field{margin-bottom:1rem}
+.adm-label{display:block;margin-bottom:.25rem;font-size:.875rem;font-weight:600}
+.adm-input,.adm-select,.adm-textarea{width:100%;border:1px solid #D8B66A;border-radius:.375rem;background:#fff;padding:.5rem .75rem;font:inherit;color:inherit}
+.adm-input:focus,.adm-select:focus,.adm-textarea:focus{outline:2px solid #173C30;outline-offset:1px}
+.adm-textarea{min-height:7rem;resize:vertical}
+.adm-textarea--besar{min-height:18rem}
+.adm-hint{margin-top:.25rem;font-size:.75rem;opacity:.7}
+.adm-errors{margin-bottom:1rem;padding:.6rem .75rem .6rem 2rem;border:1px solid #6F2935;border-radius:.375rem;background:rgba(111,41,53,.08);color:#6F2935;font-size:.875rem;list-style:disc}
+.adm-grid-2{display:grid;gap:1rem}
+@media(min-width:768px){.adm-grid-2{grid-template-columns:1fr 1fr}}
+.adm-badge{display:inline-block;border-radius:999px;padding:.1rem .6rem;font-size:.75rem;font-weight:600}
+.adm-badge--terbit{background:rgba(23,60,48,.12);color:#173C30}
+.adm-badge--draf{background:rgba(216,182,106,.35);color:#6F2935}
+.adm-badge--admin{background:#6F2935;color:#FFFAF0}
+.adm-badge--editor{background:rgba(23,60,48,.12);color:#173C30}
+.adm-thumb{width:56px;height:56px;border:1px solid #D8B66A;border-radius:.25rem;object-fit:cover;background:#F6F0E3}
+.adm-thumb--besar{width:auto;max-width:100%;height:auto;max-height:12rem}
+.adm-pager{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:1.25rem}
+.adm-pager__item{border:1px solid #D8B66A;border-radius:.25rem;background:#FFFAF0;padding:.25rem .65rem;text-decoration:none}
+.adm-pager__aktif{background:#173C30;color:#D8B66A}
+.adm-galeri{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+@media(min-width:768px){.adm-galeri{grid-template-columns:repeat(4,1fr)}}
+.adm-galeri__item{overflow:hidden;border:1px solid #D8B66A;border-radius:.5rem;background:#FFFAF0}
+.adm-galeri__item img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+.adm-galeri__isi{padding:.6rem .75rem;font-size:.85rem}
+.adm-cek{display:flex;align-items:center;gap:.5rem;font-size:.9rem}

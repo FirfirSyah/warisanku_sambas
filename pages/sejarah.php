@@ -1,27 +1,48 @@
 <?php
-require_once __DIR__ . '/../includes/data-contoh.php';
+require_once __DIR__ . '/../includes/konten.php';
 
 $pageTitle  = 'Sejarah Sambas';
 $activePage = 'sejarah';
 $judul      = 'Sejarah Sambas';
 $subjudul   = 'Catatan perjalanan Sambas dari masa ke masa.';
-$data       = contoh_sejarah();
+
+$q   = trim((string) ($_GET['q'] ?? ''));
+$kat = trim((string) ($_GET['kategori'] ?? ''));
+$hal = max(1, (int) ($_GET['page'] ?? 1));
+
+$daftarKategori = [];
+if ($kat !== '' && !in_array($kat, $daftarKategori, true)) {
+    $kat = '';
+}
+
+$hasil = cari_konten('sejarah', $q, $kat, $hal);
+$data  = $hasil['items'];
 
 require __DIR__ . '/../includes/header.php';
 require __DIR__ . '/../includes/judul-halaman.php';
 ?>
 
 <main id="isi" class="mx-auto max-w-6xl px-4 pt-10">
-  <div class="grid gap-5 md:grid-cols-3">
-    <?php foreach ($data as $item) { include __DIR__ . '/../includes/kartu.php'; } ?>
-  </div>
+  <form method="get" class="flex overflow-hidden rounded border border-emas bg-gading">
+    <label for="q" class="sr-only">Cari artikel sejarah</label>
+    <input id="q" name="q" type="search" value="<?= e($q) ?>" placeholder="Cari artikel sejarah..."
+           class="w-full bg-gading px-4 py-3 outline-none">
+    <?php if ($kat !== ''): ?>
+      <input type="hidden" name="kategori" value="<?= e($kat) ?>">
+    <?php endif; ?>
+    <button type="submit" class="bg-emas px-5 font-semibold hover:bg-krem">Cari</button>
+  </form>
 
-  <!-- Tampilan pagination. Fungsinya baru aktif di Tahap 5. -->
-  <nav class="mt-10 flex justify-center gap-2" aria-label="Halaman">
-    <span class="rounded border border-emas bg-hijau px-3 py-1 text-emas">1</span>
-    <span class="rounded border border-emas bg-gading px-3 py-1">2</span>
-    <span class="rounded border border-emas bg-gading px-3 py-1">3</span>
-  </nav>
+  <?php if (!$data): ?>
+    <p class="mt-10 rounded border border-emas bg-gading p-6 text-center">
+      <?= ($q !== '' || $kat !== '') ? 'Tidak ada hasil yang cocok.' : 'Belum ada konten yang diterbitkan.' ?>
+    </p>
+  <?php else: ?>
+    <div class="mt-6 grid gap-5 md:grid-cols-3">
+      <?php foreach ($data as $item) { include __DIR__ . '/../includes/kartu.php'; } ?>
+    </div>
+    <?php pager_publik($hasil['total'], $hal, PUBLIK_PER_HALAMAN, ['q' => $q, 'kategori' => $kat]); ?>
+  <?php endif; ?>
 </main>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

@@ -7,17 +7,17 @@ $adminActive = $adminActive ?? '';
 $user        = current_user();
 $flash       = get_flash();
 
-// 'siap' => true kalau halamannya sudah dibuat. Ubah ke true seiring kita bangun.
+// 'siap' => true kalau halamannya sudah dibuat.
 $menuAdmin = [
     'dashboard' => ['Dashboard',     'admin/dashboard.php',     true],
-    'sejarah'   => ['Sejarah',       'admin/artikel/index.php', false],
-    'budaya'    => ['Budaya',        'admin/budaya/index.php',  false],
-    'wisata'    => ['Wisata',        'admin/wisata/index.php',  false],
-    'galeri'    => ['Galeri',        'admin/galeri/index.php',  false],
-    'kategori'  => ['Kategori',      'admin/kategori/index.php', false],
+    'sejarah'   => ['Sejarah',       'admin/artikel/index.php', true],
+    'budaya'    => ['Budaya',        'admin/budaya/index.php',  true],
+    'wisata'    => ['Wisata',        'admin/wisata/index.php',  true],
+    'galeri'    => ['Galeri',        'admin/galeri/index.php',  true],
+    'kategori'  => ['Kategori',      'admin/kategori/index.php', true],
 ];
 if ($user['role'] === 'admin') {
-    $menuAdmin['pengguna'] = ['Pengguna', 'admin/pengguna/index.php', false];
+    $menuAdmin['pengguna'] = ['Pengguna', 'admin/pengguna/index.php', true];
 }
 ?>
 <!DOCTYPE html>
@@ -28,6 +28,7 @@ if ($user['role'] === 'admin') {
   <meta name="robots" content="noindex, nofollow">
   <title><?= e($adminTitle) ?> | Admin <?= e(SITE_NAME) ?></title>
   <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
+  <link rel="stylesheet" href="<?= e(asset('css/admin.css')) ?>">
 </head>
 <body class="bg-krem text-hijau antialiased">
 <div class="min-h-screen md:flex">

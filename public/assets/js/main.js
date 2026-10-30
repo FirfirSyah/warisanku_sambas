@@ -134,6 +134,8 @@
     itemGaleri.forEach((it) => {
       it.addEventListener('click', () => {
         pemicu = it;
+        const foto = document.getElementById('modal-gambar');
+        if (foto) { foto.src = it.dataset.gambar || ''; foto.alt = it.dataset.judul || ''; }
         document.getElementById('modal-judul').textContent = it.dataset.judul || 'Dokumentasi';
         document.getElementById('modal-deskripsi').textContent = it.dataset.deskripsi || '';
         document.getElementById('modal-sumber').textContent = it.dataset.sumber || 'Belum dicantumkan';

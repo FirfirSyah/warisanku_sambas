@@ -1,35 +1,21 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/konten.php';
 
 $pageTitle  = 'Beranda';
 $activePage = 'beranda';
 
-// Data contoh ditandai secara jelas agar tidak dianggap sebagai informasi sejarah faktual.
+// 'kat' = nama kategori persis seperti di database (dipakai untuk filter di halaman budaya).
 $kategori = [
-    ['nama' => 'Adat Istiadat', 'kode' => '01', 'deskripsi' => 'Nilai dan tata cara kehidupan'],
-    ['nama' => 'Tradisi', 'kode' => '02', 'deskripsi' => 'Ritual dan perayaan masyarakat'],
-    ['nama' => 'Kesenian', 'kode' => '03', 'deskripsi' => 'Ekspresi seni dan pertunjukan'],
-    ['nama' => 'Musik', 'kode' => '04', 'deskripsi' => 'Irama dan bunyi tradisional'],
-    ['nama' => 'Kerajinan', 'kode' => '05', 'deskripsi' => 'Karya dan keterampilan lokal'],
-    ['nama' => 'Kuliner', 'kode' => '06', 'deskripsi' => 'Cita rasa khas Sambas'],
+    ['nama' => 'Adat Istiadat', 'kat' => 'Adat Istiadat', 'kode' => '01', 'deskripsi' => 'Nilai dan tata cara kehidupan'],
+    ['nama' => 'Tradisi', 'kat' => 'Tradisi', 'kode' => '02', 'deskripsi' => 'Ritual dan perayaan masyarakat'],
+    ['nama' => 'Kesenian', 'kat' => 'Kesenian dan Tari', 'kode' => '03', 'deskripsi' => 'Ekspresi seni dan pertunjukan'],
+    ['nama' => 'Musik', 'kat' => 'Musik', 'kode' => '04', 'deskripsi' => 'Irama dan bunyi tradisional'],
+    ['nama' => 'Kerajinan', 'kat' => 'Kerajinan', 'kode' => '05', 'deskripsi' => 'Karya dan keterampilan lokal'],
+    ['nama' => 'Kuliner', 'kat' => 'Kuliner Khas', 'kode' => '06', 'deskripsi' => 'Cita rasa khas Sambas'],
 ];
 
-$sejarah = [];
-$wisata  = [];
-for ($i = 1; $i <= 3; $i++) {
-    $sejarah[] = [
-        'judul'     => "Artikel Sejarah Pilihan $i",
-        'ringkasan' => 'Ringkasan artikel akan ditampilkan setelah konten terverifikasi ditambahkan melalui pengelolaan website.',
-        'kategori'  => 'Contoh konten',
-        'url'       => base_url('pages/sejarah.php'),
-    ];
-    $wisata[] = [
-        'judul'     => "Destinasi Pilihan $i",
-        'ringkasan' => 'Informasi lokasi, akses, dan daya tarik akan ditampilkan setelah data destinasi dilengkapi.',
-        'kategori'  => 'Contoh konten',
-        'url'       => base_url('pages/wisata.php'),
-    ];
-}
+$sejarah = terbaru('sejarah', 3);
+$wisata  = terbaru('wisata', 3);
 
 require __DIR__ . '/../includes/header.php';
 ?>
@@ -108,7 +94,7 @@ require __DIR__ . '/../includes/header.php';
     </div>
     <div class="category-grid mt-5">
       <?php foreach ($kategori as $index => $item): ?>
-        <a href="<?= e(base_url('pages/budaya.php')) ?>" class="category-card" style="--card-index:<?= (int)$index ?>">
+        <a href="<?= e(base_url('pages/budaya.php?kategori=' . urlencode($item['kat']))) ?>" class="category-card" style="--card-index:<?= (int)$index ?>">
           <span class="category-card__number"><?= e($item['kode']) ?></span>
           <span class="category-card__symbol" aria-hidden="true"><?= ['✳','◇','✦','♫','⌘','◈'][$index] ?></span>
           <span class="category-card__title"><?= e($item['nama']) ?></span>
@@ -144,7 +130,9 @@ require __DIR__ . '/../includes/header.php';
       <a href="<?= e(base_url('pages/sejarah.php')) ?>" class="link-arrow">Semua artikel <span aria-hidden="true">↗</span></a>
     </div>
     <div class="mt-5 grid gap-5 md:grid-cols-3">
-      <?php foreach ($sejarah as $item) { include __DIR__ . '/../includes/kartu.php'; } ?>
+      <?php if (!$sejarah): ?>
+        <p class="rounded border border-emas bg-gading p-6 text-center" style="grid-column:1/-1">Belum ada artikel sejarah yang diterbitkan.</p>
+      <?php else: foreach ($sejarah as $item) { include __DIR__ . '/../includes/kartu.php'; } endif; ?>
     </div>
   </section>
 
@@ -156,7 +144,9 @@ require __DIR__ . '/../includes/header.php';
         <a href="<?= e(base_url('pages/wisata.php')) ?>" class="link-arrow">Semua destinasi <span aria-hidden="true">↗</span></a>
       </div>
       <div class="mt-5 grid gap-5 md:grid-cols-3">
-        <?php foreach ($wisata as $item) { include __DIR__ . '/../includes/kartu.php'; } ?>
+        <?php if (!$wisata): ?>
+        <p class="rounded border border-emas bg-gading p-6 text-center" style="grid-column:1/-1">Belum ada destinasi wisata yang diterbitkan.</p>
+      <?php else: foreach ($wisata as $item) { include __DIR__ . '/../includes/kartu.php'; } endif; ?>
       </div>
     </div>
   </section>
