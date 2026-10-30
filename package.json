@@ -1,0 +1,16 @@
+{
+  "name": "warisanku_sambas",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+"scripts": {
+  "dev": "tailwindcss -i ./src/input.css -o ./public/assets/css/style.css --watch",
+  "build": "tailwindcss -i ./src/input.css -o ./public/assets/css/style.css --minify"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
